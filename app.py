@@ -1,12 +1,7 @@
 import streamlit as st
-#import pandas as pd
 import time
-import io
 import os
 import tempfile
-from docx import Document
-from datetime import datetime
-from docx2pdf import convert
 import subprocess
 
 from utils1 import (
