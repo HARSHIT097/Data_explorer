@@ -1,14 +1,28 @@
+from datetime import datetime
 import pandas as pd
+from docx import Document
+import re
 
+def generate_html_from_data(data_dict):
+    html = "<html><body>"
+    html += "<h2>Document Data</h2><ul>"
+    for key, value in data_dict.items():
+        html += f"<li><strong>{key}</strong>: {value}</li>"
+    html += f"<li><strong>Date</strong>: {datetime.today().strftime('%d-%m-%Y')}</li>"
+    html += "</ul></body></html>"
+    return html
 def read_file(file):
-    if file.name.endswith('.csv'):
-        df = pd.read_csv(file)
-    elif file.name.endswith('.xlsx'):
-        df = pd.read_excel(file, engine='openpyxl')  # 👈 important fix
-    else:
-        raise ValueError("Unsupported file format")
-    return df
-
+    try:
+            if file.name.endswith('.csv'):
+                df = pd.read_csv(file, dtype=str)
+            elif file.name.endswith('.xlsx'):
+                df = pd.read_excel(file, dtype=str, engine='openpyxl')  # 👈 important fix
+            else:
+                raise ValueError("Unsupported file format")
+            return df[:10]
+    except Exception as e:
+        st.error(f"❌ Error loading file: {e}")
+        return pd.DataFrame()
 
 # 📋 List column names
 def get_columns(df):
@@ -91,4 +105,17 @@ def split_matching_rows(filtered_dict: dict):
     machine_rows_df = df.iloc[1:]
     return first_row_df, machine_rows_df
 
+def fill_template(template_path, data_dict):
+    doc = Document(template_path)
 
+    # Inject today's date into data
+    data_dict["Date"] = datetime.today().strftime("%d-%m-%Y")
+
+    # Replace in paragraphs
+    for para in doc.paragraphs:
+        for key, val in data_dict.items():
+            placeholder = f"{{{key}}}"
+            if placeholder in para.text:
+                para.text = para.text.replace(placeholder, str(val))
+                print(placeholder)
+    return doc

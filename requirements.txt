@@ -1,4 +1,6 @@
+openpyxl
 streamlit
 pandas
-openpyxl
+pdfkit
 python-docx
+reportlab

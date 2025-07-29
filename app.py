@@ -1,9 +1,13 @@
 import streamlit as st
-import pandas as pd
+#import pandas as pd
 import time
 import io
 import os
+import tempfile
 from docx import Document
+from datetime import datetime
+from docx2pdf import convert
+import subprocess
 
 from utils1 import (
     read_file,
@@ -11,7 +15,8 @@ from utils1 import (
     get_rows_by_column_value,
     get_specific_value,
     extract_target_column,
-    split_matching_rows
+    split_matching_rows,
+    fill_template
 )
 
 # App Config
@@ -41,13 +46,15 @@ file_to_use = st.session_state.get("latest_file", None)
 def load_data(file):
     return read_file(file)
 
+
 if file_to_use:
     with st.spinner("📄 Loading file..."):
         df = load_data(file_to_use)
         time.sleep(0.5)
 
-    st.subheader("🔍 Sample Data")
-    st.dataframe(df.head(10))
+    with st.expander("🔍 View First Matching Row"):
+        st.subheader("🔍 Sample Data")
+        st.dataframe(df.head(10))
 
     columns = get_columns(df)
 
@@ -94,6 +101,7 @@ if file_to_use:
     # ----------------------------
     # 📊 Display Query Results
     # ----------------------------
+
     query_result = st.session_state.get("query_result", None)
 
     if query_result:
@@ -137,60 +145,71 @@ if file_to_use:
     # --------------------
     st.markdown("---")
     st.markdown("## 📝 Generate Document")
+
     query_result = st.session_state.get("query_result", None)
+    first_row_dict = None
 
-    if query_result and query_result.get("first_row_dict"):
-    #if 'first_row_dict' in st.session_state:
-        first_row_dict = query_result['first_row_dict']
+    # Safe retrieval of first_row_dict
+    if query_result and isinstance(query_result, dict):
+        first_row_dict = query_result.get("first_row_dict")
 
-        doc_template = f"""
-            Dear Customer {first_row_dict.get("CUST_ID", "N/A")},
-    
-            We are writing to inform you of your latest financial activity:
-    
-            - 💰 Balance: {first_row_dict.get("BALANCE", "N/A")}
-            - 📊 Balance Frequency: {first_row_dict.get("BALANCE_FREQUENCY", "N/A")}
-            - 🛍️ Purchases: {first_row_dict.get("PURCHASES", "N/A")}
-    
-            Thank you for choosing our service.
-    
-            Regards,  
-            💼 Your DataBot
-            """
+    if not first_row_dict and "first_row_dict" in st.session_state:
+        first_row_dict = st.session_state["first_row_dict"]
 
-        st.text_area("📄 Document Preview", doc_template, height=250)
-        st.markdown("### 📥 Download Document As")
+    edited_data = {}
 
-        download_format = st.selectbox("Choose format", ["TXT", "DOCX"], key="format_select")
-        generate_button = st.button("📄 Generate & Download")
+    with st.expander("📋 View Key-Value Table"):
+        if first_row_dict:
+            st.markdown("### 📝 Review & Edit Data Before Generating")
 
-        if generate_button:
-            if download_format == "TXT":
-                buffer = io.StringIO()
-                buffer.write(doc_template)
-                st.download_button(
-                    label="📥 Download TXT",
-                    data=buffer.getvalue(),
-                    file_name="generated_document.txt",
-                    mime="text/plain"
-                )
+            # Let user edit fields before generating the document
+            edited_data = {}
+            for field, value in first_row_dict.items():
+                edited_data[field] = st.text_input(field, value)
 
-            elif download_format == "DOCX":
-                doc = Document()
-                for line in doc_template.strip().split("\n"):
-                    doc.add_paragraph(line.strip())
+            # Optional: allow download after edit
+            #template_path = "template.docx"
+            #st.markdown("### 📥 Download Filled Template")
+            # Save edited data to session state
+            st.session_state["edited_data"] = edited_data
 
-                buffer = io.BytesIO()
-                doc.save(buffer)
-                buffer.seek(0)
+        else:
+            st.warning("⚠️ No data available to generate document. Please run a query first.")
+    # --------------------
+    # 📄 Generate Button OUTSIDE the Expander
+    # --------------------
+    if "edited_data" in st.session_state:
+        st.markdown("### 📄 Generate Document From Template")
 
-                st.download_button(
-                    label="📥 Download DOCX",
-                    data=buffer,
-                    file_name="generated_document.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                )
-    else:
-        st.error("⚠️ No data available to generate document. Please run a query first.")
+        if st.button("📄 Generate From Template"):
+            template_path = "template.docx"
+            doc = fill_template(template_path, st.session_state["edited_data"])
+
+            # Save DOCX to temp file
+            with tempfile.TemporaryDirectory() as tmpdir:
+                docx_path = os.path.join(tmpdir, "output.docx")
+                pdf_path = os.path.join(tmpdir, "output.pdf")
+                doc.save(docx_path)
+
+                # Convert DOCX to PDF
+                try:
+                    #convert(docx_path, pdf_path)
+                    subprocess.run(["docx2pdf", docx_path, pdf_path], check=True)
+                    # Load PDF for download
+                    with open(pdf_path, "rb") as pdf_file:
+                        st.download_button(
+                            label="📥 Download PDF",
+                            data=pdf_file,
+                            file_name="generated_from_template.pdf",
+                            mime="application/pdf"
+                        )
+                except Exception as e:
+                    st.error(f"PDF conversion failed: {e}")
+
 else:
     st.info("Please upload a file to begin.")
+
+
+
+
+
