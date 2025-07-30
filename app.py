@@ -2,7 +2,15 @@ import streamlit as st
 import time
 import os
 import tempfile
-import subprocess
+import pypandoc
+
+def convert_docx_to_pdf(docx_path, output_pdf_path):
+    try:
+        output = pypandoc.convert_file(docx_path, 'pdf', outputfile=output_pdf_path)
+        return output_pdf_path
+    except Exception as e:
+        st.error(f"❌ PDF conversion failed: {e}")
+        return None
 
 from utils1 import (
     read_file,
@@ -11,7 +19,7 @@ from utils1 import (
     get_specific_value,
     extract_target_column,
     split_matching_rows,
-    fill_template
+    fill_template,
 )
 
 # App Config
@@ -187,10 +195,10 @@ if file_to_use:
                 doc.save(docx_path)
 
                 # Convert DOCX to PDF
-                try:
-                    #convert(docx_path, pdf_path)
-                    subprocess.run(["docx2pdf", docx_path, pdf_path], check=True)
-                    # Load PDF for download
+                # Convert to PDF
+                converted = convert_docx_to_pdf(docx_path, pdf_path)
+
+                if converted:
                     with open(pdf_path, "rb") as pdf_file:
                         st.download_button(
                             label="📥 Download PDF",
@@ -198,8 +206,6 @@ if file_to_use:
                             file_name="generated_from_template.pdf",
                             mime="application/pdf"
                         )
-                except Exception as e:
-                    st.error(f"PDF conversion failed: {e}")
 
 else:
     st.info("Please upload a file to begin.")

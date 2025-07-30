@@ -3,6 +3,7 @@ import pandas as pd
 from docx import Document
 import re
 
+
 def generate_html_from_data(data_dict):
     html = "<html><body>"
     html += "<h2>Document Data</h2><ul>"

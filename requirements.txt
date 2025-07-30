@@ -4,3 +4,4 @@ pandas
 pdfkit
 python-docx
 reportlab
+pypandoc
