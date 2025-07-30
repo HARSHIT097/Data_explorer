@@ -20,6 +20,7 @@ from utils1 import (
     extract_target_column,
     split_matching_rows,
     fill_template,
+    generate_pdf_from_dict
 )
 
 # App Config
@@ -188,25 +189,19 @@ if file_to_use:
             template_path = "template.docx"
             doc = fill_template(template_path, st.session_state["edited_data"])
 
-            # Save DOCX to temp file
-            with tempfile.TemporaryDirectory() as tmpdir:
-                docx_path = os.path.join(tmpdir, "output.docx")
-                pdf_path = os.path.join(tmpdir, "output.pdf")
-                doc.save(docx_path)
-
-                # Convert DOCX to PDF
-                # Convert to PDF
-                converted = convert_docx_to_pdf(docx_path, pdf_path)
-
-                if converted:
-                    with open(pdf_path, "rb") as pdf_file:
-                        st.download_button(
-                            label="📥 Download PDF",
-                            data=pdf_file,
-                            file_name="generated_from_template.pdf",
-                            mime="application/pdf"
-                        )
-
+        try:
+            pdf_path = generate_pdf_from_dict(edited_data)
+            with open(pdf_path, "rb") as f:
+                st.download_button(
+                    label="📥 Download PDF",
+                    data=f,
+                    file_name="generated_output.pdf",
+                    mime="application/pdf"
+                )
+        except Exception as e:
+            st.error(f"❌ PDF generation failed: {e}")
+    else:
+        st.warning("⚠️ No data to generate PDF.")
 else:
     st.info("Please upload a file to begin.")
 
