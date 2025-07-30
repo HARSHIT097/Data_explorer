@@ -36,7 +36,7 @@ file_to_use = st.session_state.get("latest_file", None)
 # --------------------
 # 📄 Load File with Cache
 # --------------------
-@st.cache
+@st.cache_data
 def load_data(file):
     return read_file(file)
 
