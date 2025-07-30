@@ -2,39 +2,6 @@ from datetime import datetime
 import pandas as pd
 from docx import Document
 import re
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from datetime import datetime
-import tempfile
-import os
-
-def generate_pdf_from_dict(data_dict):
-    # Create a temporary file to save PDF
-    temp_dir = tempfile.mkdtemp()
-    pdf_path = os.path.join(temp_dir, "generated_output.pdf")
-
-    c = canvas.Canvas(pdf_path, pagesize=A4)
-    width, height = A4
-
-    y = height - 50
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(50, y, "Generated PDF Report")
-
-    y -= 30
-    c.setFont("Helvetica", 12)
-    c.drawString(50, y, f"Created: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
-    y -= 40
-
-    for key, value in data_dict.items():
-        if y < 50:  # New page
-            c.showPage()
-            y = height - 50
-        c.drawString(50, y, f"{key}: {value}")
-        y -= 20
-
-    c.save()
-    return pdf_path
 
 
 def generate_html_from_data(data_dict):

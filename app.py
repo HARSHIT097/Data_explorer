@@ -1,16 +1,7 @@
 import streamlit as st
 import time
+import io
 import os
-import tempfile
-import pypandoc
-
-def convert_docx_to_pdf(docx_path, output_pdf_path):
-    try:
-        output = pypandoc.convert_file(docx_path, 'pdf', outputfile=output_pdf_path)
-        return output_pdf_path
-    except Exception as e:
-        st.error(f"❌ PDF conversion failed: {e}")
-        return None
 
 from utils1 import (
     read_file,
@@ -19,8 +10,7 @@ from utils1 import (
     get_specific_value,
     extract_target_column,
     split_matching_rows,
-    fill_template,
-    generate_pdf_from_dict
+    fill_template
 )
 
 # App Config
@@ -189,23 +179,17 @@ if file_to_use:
             template_path = "template.docx"
             doc = fill_template(template_path, st.session_state["edited_data"])
 
-        try:
-            pdf_path = generate_pdf_from_dict(edited_data)
-            with open(pdf_path, "rb") as f:
-                st.download_button(
-                    label="📥 Download PDF",
-                    data=f,
-                    file_name="generated_output.pdf",
-                    mime="application/pdf"
-                )
-        except Exception as e:
-            st.error(f"❌ PDF generation failed: {e}")
-    else:
-        st.warning("⚠️ No data to generate PDF.")
+            buffer = io.BytesIO()
+            doc.save(buffer)
+            buffer.seek(0)
+
+            st.download_button(
+                label="📥 Download DOCX",
+                data=buffer,
+                file_name="generated_from_template.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
 else:
     st.info("Please upload a file to begin.")
-
-
-
 
 
